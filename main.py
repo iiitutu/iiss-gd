@@ -8,7 +8,7 @@ import feedparser
 import httpx
 import praw
 from pydantic import BaseModel, Field
-
+from dotenv import load_dotenv
 
 class Settings(BaseModel):
     """运行时配置，来源于环境变量。"""
@@ -121,25 +121,42 @@ def fetch_reddit(subreddit: str, client: praw.Reddit, limit: int) -> List[FeedIt
     logger.info("Reddit子版块%s抓取%d条", subreddit, len(items))
     return items
 
+def _process_markdown(item: FeedItem)->str:
+
+    md = f"**{item.title}** · [{item.title}]({item.url})\n"
+    return md
 
 def render_card(items: List[FeedItem]) -> dict:
     # 构造简单的飞书交互卡片，突出来源与标题
     elements = []
     for item in items[:10]:
-        elements.append(
-            {
-                "tag": "div",
-                "text": {
-                    "tag": "lark_md",
-                    "content": f"**{item.source}** · [{item.title}]({item.url})\n{item.summary or '暂无摘要'}",
+        elements.extend(
+            [
+                {
+                    "tag": "div",
+                    "text": {
+                        "tag": "lark_md",
+                        "content": _process_markdown(item),
+                    },
                 },
-            }
+                # 分割线
+                {
+                    "tag": "hr",
+                    "margin": "0px 0px 0px 0px"
+                }
+            ]
         )
+
+    # 移除末尾的分割线
+    if elements:
+        elements.pop()
+
     return {
         "msg_type": "interactive",
         "card": {
             "header": {
-                "title": {"tag": "plain_text", "content": "IISS-GD 信息流"},
+                "title": {"tag": "plain_text", "content": "Designer 信息流"},
+                "subtitle": {"tag": "plain_text", "content": "Your daily dose of Game Design!"},
                 "template": "turquoise",
             },
             "elements": elements,
@@ -158,6 +175,7 @@ def push_feishu(webhook: str, items: List[FeedItem]) -> None:
 
 
 def main() -> None:
+    _ = load_dotenv()
     init_logger()
     settings = load_settings()
     all_items: List[FeedItem] = []
@@ -165,10 +183,10 @@ def main() -> None:
     for channel in settings.youtube_channels:
         all_items.extend(fetch_youtube(channel, settings.max_items))
 
-    reddit_client = build_reddit_client(settings)
-    if reddit_client:
-        for subreddit in settings.reddit_subreddits:
-            all_items.extend(fetch_reddit(subreddit, reddit_client, settings.max_items))
+    # reddit_client = build_reddit_client(settings)
+    # if reddit_client:
+    #     for subreddit in settings.reddit_subreddits:
+    #         all_items.extend(fetch_reddit(subreddit, reddit_client, settings.max_items))
 
     if not all_items:
         logger.warning("没有可用的抓取结果，请检查数据源配置")
