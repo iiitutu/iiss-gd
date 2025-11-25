@@ -17,6 +17,7 @@ class Settings(BaseModel):
     reddit_client_secret: Optional[str] = None
     reddit_user_agent: str = "iiss-gd-bot/0.1"
     max_items: int = 5
+    incremental_state_file: Optional[str] = None
 
 
 def _parse_env_list(raw: Optional[str]) -> List[str]:
@@ -36,4 +37,5 @@ def load_settings() -> Settings:
         reddit_client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
         reddit_user_agent=os.getenv("REDDIT_USER_AGENT", "iiss-gd-bot/0.1"),
         max_items=int(os.getenv("MAX_ITEMS", "5")),
+        incremental_state_file=os.getenv("INCREMENTAL_STATE_FILE"),
     )

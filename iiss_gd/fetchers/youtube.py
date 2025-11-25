@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def fetch_youtube(channel_id: str, limit: int) -> List[FeedItem]:
     # 使用官方RSS避免额外依赖，频道ID可在YouTube后台或链接中获取
     url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
-    feed = feedparser.parse(url)
+    feed = feedparser.parse(url)    # 见temp_files/youtube_feed_template
     items: List[FeedItem] = []
     for entry in feed.entries[:limit]:
         published_at = to_datetime(getattr(entry, "published_parsed", None))
